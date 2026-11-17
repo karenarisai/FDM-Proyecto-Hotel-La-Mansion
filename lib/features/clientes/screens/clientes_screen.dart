@@ -7,6 +7,8 @@ import 'package:hotel_la_mansion/features/reservations/screens/reservations_scre
 import 'package:hotel_la_mansion/features/rooms/screens/rooms_screen.dart';
 import 'package:hotel_la_mansion/widgets/hotel_navigation_bar.dart';
 import 'package:hotel_la_mansion/features/clientes/widgets/cliente_card.dart';
+import '../services/local_cliente_service.dart';
+
 
 class ClientesScreen extends StatefulWidget {
   const ClientesScreen({super.key});
@@ -16,44 +18,157 @@ class ClientesScreen extends StatefulWidget {
 }
 
 class _ClientesScreenState extends State<ClientesScreen> {
+  final LocalClienteService _dbService = LocalClienteService();
+
   final List<Cliente> _clientes = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadClientes();
+  }
+
+  void _showAddClienteDialog() {
+    final nombreController = TextEditingController();
+    final numeroDocumentoController = TextEditingController();
+    final telefonoController = TextEditingController();
+    final correoElectronicoController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) =>  AlertDialog(
+          title: Text('Agregar Cliente'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nombreController,
+                  decoration: InputDecoration(labelText: 'Nombre'),
+                ),
+                TextField(
+                  controller: numeroDocumentoController,
+                  decoration: InputDecoration(labelText: 'Número de Documento'),
+                ),
+                TextField(
+                  controller: telefonoController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(labelText: 'Teléfono'),
+                ),
+                TextField(
+                  controller: correoElectronicoController,
+                  decoration: InputDecoration(labelText: 'Correo Electrónico'),
+                ),
+              ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancelar'),
+            ),
+            ElevatedButton(
+             onPressed: () async{
+              if (nombreController.text.isNotEmpty &&
+                  numeroDocumentoController.text.isNotEmpty &&
+                  telefonoController.text.isNotEmpty &&
+                  correoElectronicoController.text.isNotEmpty) {
+                final newCliente = Cliente(
+                  nombre: nombreController.text,
+                  numeroDocumento: numeroDocumentoController.text,
+                  telefono: telefonoController.text,
+                  correoElectronico: correoElectronicoController.text,
+                );
+                await _dbService.insertCliente(newCliente);
+                if(!mounted) return;
+                Navigator.pop(context);
+                _loadClientes();
+              } else {
+                // Show an error message or handle the empty fields case
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Por favor, complete todos los campos.')
+                  ),
+                );
+              }
+             },
+              child: Text('Guardar'),
+            ),
+          ],
+        ),
+    );
+  }
+
+  void _loadClientes() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final clientes = await _dbService.getClientes();
+    setState(() {
+      _clientes.addAll(clientes);
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _addCliente(Cliente cliente) async {
+    await _dbService.insertCliente(cliente);
+    setState(() {
+      _clientes.add(cliente);
+    });
+  }
+
+  Future<void> _updateCliente(Cliente cliente) async {
+    await _dbService.updateWorkout(cliente);
+    setState(() {
+      final index = _clientes.indexWhere((c) => c.id == cliente.id);
+      if (index != -1) {
+        _clientes[index] = cliente;
+      }
+    });
+  }
+
+  Future<void> _deleteCliente(int id) async {
+    await _dbService.deleteWorkout(id);
+    setState(() {
+      _clientes.removeWhere((c) => c.id == id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Clientes')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_clientes.isEmpty)
-            const Card(
-              child: ListTile(
-                leading: CircleAvatar(child: Icon(Icons.person)),
-                title: Text('No hay clientes registrados'),
-                subtitle: Text('Aquí aparecerán los clientes del hotel.'),
-              ),
-            )
-          else
-            ..._clientes.map(
-              (cliente) => ClienteCard(
+      appBar: AppBar(
+        title: Text('Clientes')
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _clientes.isEmpty
+          ? Center(child: Text('No hay clientes registrados.'))
+          :
+          ListView.builder(
+            itemCount: _clientes.length,
+            itemBuilder: (context, index) {
+              final cliente = _clientes[index];
+            
+              return ClienteCard(
                 nombre: cliente.nombre,
                 apellido: '',
-                email: cliente.correo,
+                email: cliente.correoElectronico,
                 telefono: cliente.telefono,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ClienteDetailScreen(cliente: cliente),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _mostrarFormulario,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ClienteDetailScreen(cliente: cliente),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddClienteDialog,
         icon: const Icon(Icons.add),
-        label: const Text('Nuevo cliente'),
+        label: Text('Nuevo cliente'),
         foregroundColor: Colors.white,
         backgroundColor: const Color(0xFF023B90),
       ),
@@ -79,101 +194,5 @@ class _ClientesScreenState extends State<ClientesScreen> {
         MaterialPageRoute(builder: (_) => screen),
       );
     }
-  }
-
-  void _mostrarFormulario() {
-    String nombre = '';
-    String numeroDocumento = '';
-    String telefono = '';
-    String correo = '';
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text('Nuevo cliente'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-                onChanged: (value) => nombre = value,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Número de documento',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                ),
-                onChanged: (value) => numeroDocumento = value,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Teléfono',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                ),
-                keyboardType: TextInputType.phone,
-                onChanged: (value) => telefono = value,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Correo electrónico',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                onChanged: (value) => correo = value,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Color(0xFF023B90), // Fondo
-              foregroundColor: Colors.white, // Texto e ícono
-            ),
-            onPressed: () {
-              if (nombre.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Escribe el nombre del cliente'),
-                  ),
-                );
-                return;
-              }
-
-              setState(() {
-                _clientes.add(
-                  Cliente(
-                    nombre: nombre.trim(),
-                    numeroDocumento: numeroDocumento.trim(),
-                    telefono: telefono.trim(),
-                    correo: correo.trim(),
-                    nacionalidad: '',
-                  ),
-                );
-              });
-
-              Navigator.of(dialogContext).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cliente agregado correctamente')),
-              );
-            },
-            child: const Text('Agregar')
-            ,
-          ),
-        ],
-      ),
-    );
   }
 }

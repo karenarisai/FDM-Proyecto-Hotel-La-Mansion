@@ -36,12 +36,7 @@ class ClienteDetailScreen extends StatelessWidget {
           _DetailItem(
             icon: Icons.email_outlined,
             title: 'Correo',
-            value: cliente.correo,
-          ),
-          _DetailItem(
-            icon: Icons.public,
-            title: 'Nacionalidad',
-            value: cliente.nacionalidad,
+            value: cliente.correoElectronico,
           ),
         ],
       ),

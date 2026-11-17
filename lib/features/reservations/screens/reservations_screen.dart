@@ -20,12 +20,12 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reservas')),
+      appBar: AppBar(title: Text('Reservas')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: _reservations.isEmpty
             ? [
-                const Card(
+                Card(
                   color: Colors.white,
                   child: ListTile(
                     leading: Icon(Icons.calendar_month),
@@ -39,7 +39,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showNewReservationDialog,
         icon: const Icon(Icons.add),
-        label: const Text('Nueva reserva'),
+        label: Text('Nueva reserva'),
         foregroundColor: Colors.white,
         backgroundColor: const Color(0xFF023B90),
       ),
@@ -127,13 +127,13 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                   backgroundColor: Color(0xFF023B90),  // Color de fondo
                 ),
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Cancelar'),
+                child: Text('Cancelar'),
               ),
               FilledButton(
                 onPressed: () {
                   if (nombreCliente.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text('Escribe el nombre del cliente'),
                       ),
                     );

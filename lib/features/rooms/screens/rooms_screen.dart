@@ -5,6 +5,8 @@ import 'package:hotel_la_mansion/features/finances/screens/finances_screen.dart'
 import 'package:hotel_la_mansion/features/reservations/screens/reservations_screen.dart';
 import 'package:hotel_la_mansion/widgets/hotel_navigation_bar.dart';
 import 'package:hotel_la_mansion/features/rooms/widgets/room_card.dart';
+import 'package:hotel_la_mansion/features/rooms/services/local_room_service.dart';
+import 'package:hotel_la_mansion/features/rooms/models/room_model.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -14,78 +16,142 @@ class RoomsScreen extends StatefulWidget {
 }
 
 class _RoomsScreenState extends State<RoomsScreen> {
+  final LocalRoomService _dbService = LocalRoomService();
+
+  List<RoomModel> _rooms = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRooms();
+  }
+
+  void _loadRooms() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final rooms = await _dbService.getRooms();
+
+    setState(() {
+      _rooms = rooms;
+      _isLoading = false;
+    });
+  }
 
   void _showAddRoomDialog() {
+    final roomNumberController = TextEditingController();
+    final roomDescriptionController = TextEditingController();
+    final roomPriceController = TextEditingController();
+    final roomAvailabilityController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          title: const Text('Agregar nueva habitación'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: const InputDecoration(labelText: 'Número de habitación'),
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Tipo de habitación'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
+      builder: (context) => AlertDialog(
+        title: Text('Agregar Habitación'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: roomNumberController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: 'Número de Habitación'),
             ),
-            ElevatedButton(
-              style: TextButton.styleFrom(
-              foregroundColor: Colors.white, // Color del texto
-              backgroundColor: Color(0xFF023B90),  // Color de fondo
+            TextField(
+              controller: roomDescriptionController,
+              decoration: InputDecoration(
+                labelText: 'Descripción de la Habitación',
               ),
-              onPressed: () {
-                // Aquí puedes agregar la lógica para guardar la nueva habitación
-                Navigator.of(context).pop();
-              },
-              child: const Text('Guardar'),
+            ),
+            TextField(
+              controller: roomPriceController,
+              keyboardType: TextInputType.number, 
+              decoration: InputDecoration(labelText: 'Precio de la Habitación'),
+            ),
+            TextField(
+              controller: roomAvailabilityController,
+              decoration: InputDecoration(
+                labelText: 'Disponibilidad de la Habitación',
+              ),
             ),
           ],
-        );
-      },
-    );
-  }
-   
-@override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Habitaciones')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          RoomCard(
-            roomNumber: '101',
-            roomType: 'Sencilla',
-            roomStatus: 'Disponible',
-            roomStatusColor: Colors.green,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
           ),
-          const SizedBox(height: 12),
-          RoomCard(
-            roomNumber: '102',
-            roomType: 'Doble',
-            roomStatus: 'Disponible',
-            roomStatusColor: Colors.green,
-          ),
-          const SizedBox(height: 12),
-          RoomCard(
-            roomNumber: '103',
-            roomType: 'Suite',
-            roomStatus: 'En limpieza',
-            roomStatusColor: Colors.orange,
+          ElevatedButton(
+            onPressed: () async {
+              final price = double.tryParse(roomPriceController.text.trim());
+
+              if (roomNumberController.text.isNotEmpty &&
+                  roomDescriptionController.text.isNotEmpty &&
+                  price != null &&
+                  roomAvailabilityController.text.isNotEmpty) {
+                final newRoom = RoomModel(
+                  number: roomNumberController.text,
+                  description: roomDescriptionController.text,
+                  price: price,
+                  isAvailable:
+                      roomAvailabilityController.text.trim().toLowerCase() ==
+                      'disponible',
+                );
+
+                await _dbService.insertRoom(newRoom);
+                if (!mounted) return;
+                Navigator.pop(context);
+                _loadRooms();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Por favor, complete todos los campos correctamente.',
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Text('Guardar'),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _deleteRoom(int roomId) async {
+    await _dbService.deleteRoom(roomId);
+
+    if (mounted) {
+      _loadRooms();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Habitación eliminada correctamente.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Habitaciones')),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _rooms.isEmpty
+          ? Center(child: Text('No hay habitaciones disponibles.'))
+          : ListView.builder(
+              itemCount: _rooms.length,
+              itemBuilder: (context, index) {
+                final room = _rooms[index];
+                return RoomCard(
+                  roomNumber: room.number,
+                  roomType: room.description,
+                  roomPrice: room.price,
+                  roomStatus: room.isAvailable ? 'Disponible' : 'No disponible',
+                  roomStatusColor: room.isAvailable ? Colors.green : Colors.red,
+                );
+              },
+            ),
 
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddRoomDialog,

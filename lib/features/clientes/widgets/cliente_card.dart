@@ -19,9 +19,9 @@ class ClienteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: Colors.white,
       elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ListTile(
         onTap: onTap,
@@ -54,9 +54,18 @@ class ClienteCard extends StatelessWidget {
           ),
         ),
         isThreeLine: true,
-        trailing: const Icon(
-          Icons.chevron_right,
-          color: Color(0xFF023B90),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: onTap,
+              icon: Icon(Icons.edit, color: Colors.blue),
+            ),
+            IconButton(
+              onPressed: onTap,
+              icon: Icon(Icons.delete, color: Colors.red),
+            ),
+          ],
         ),
       ),
     );
