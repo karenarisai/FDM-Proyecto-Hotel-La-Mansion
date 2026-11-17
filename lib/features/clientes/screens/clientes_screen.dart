@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hotel_la_mansion/features/clientes/models/cliente.dart';
+import 'package:hotel_la_mansion/features/clientes/screens/cliente_detail_screen.dart';
+import 'package:hotel_la_mansion/features/dashboard/screens/dashboard_screen.dart';
+import 'package:hotel_la_mansion/features/finances/screens/finances_screen.dart';
+import 'package:hotel_la_mansion/features/reservations/screens/reservations_screen.dart';
+import 'package:hotel_la_mansion/features/rooms/screens/rooms_screen.dart';
+import 'package:hotel_la_mansion/widgets/hotel_navigation_bar.dart';
+import 'package:hotel_la_mansion/features/clientes/widgets/cliente_card.dart';
 
 class ClientesScreen extends StatefulWidget {
   const ClientesScreen({super.key});
@@ -18,14 +25,6 @@ class _ClientesScreenState extends State<ClientesScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const TextField(
-            decoration: InputDecoration(
-              labelText: 'Buscar cliente',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
           if (_clientes.isEmpty)
             const Card(
               child: ListTile(
@@ -36,11 +35,16 @@ class _ClientesScreenState extends State<ClientesScreen> {
             )
           else
             ..._clientes.map(
-              (cliente) => Card(
-                child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.person)),
-                  title: Text(cliente.nombre),
-                  subtitle: Text('${cliente.telefono} · ${cliente.correo}'),
+              (cliente) => ClienteCard(
+                nombre: cliente.nombre,
+                apellido: '',
+                email: cliente.correo,
+                telefono: cliente.telefono,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ClienteDetailScreen(cliente: cliente),
+                  ),
                 ),
               ),
             ),
@@ -50,8 +54,31 @@ class _ClientesScreenState extends State<ClientesScreen> {
         onPressed: _mostrarFormulario,
         icon: const Icon(Icons.add),
         label: const Text('Nuevo cliente'),
+        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFF023B90),
+      ),
+
+      bottomNavigationBar: HotelNavigationBar(
+        selectedIndex: 2,
+        onDestinationSelected: (index) => _navigateToTab(context, index),
       ),
     );
+  }
+
+  void _navigateToTab(BuildContext context, int index) {
+    final screen = switch (index) {
+      0 => const DashboardScreen(),
+      1 => const RoomsScreen(),
+      3 => const ReservationsScreen(),
+      4 => const FinancesScreen(),
+      _ => null,
+    };
+    if (screen != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => screen),
+      );
+    }
   }
 
   void _mostrarFormulario() {
@@ -63,6 +90,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
         title: const Text('Nuevo cliente'),
         content: SingleChildScrollView(
           child: Column(
@@ -110,6 +138,10 @@ class _ClientesScreenState extends State<ClientesScreen> {
             child: const Text('Cancelar'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Color(0xFF023B90), // Fondo
+              foregroundColor: Colors.white, // Texto e ícono
+            ),
             onPressed: () {
               if (nombre.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -137,7 +169,8 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 const SnackBar(content: Text('Cliente agregado correctamente')),
               );
             },
-            child: const Text('Agregar'),
+            child: const Text('Agregar')
+            ,
           ),
         ],
       ),

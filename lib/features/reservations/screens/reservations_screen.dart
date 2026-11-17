@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hotel_la_mansion/features/clientes/screens/clientes_screen.dart';
+import 'package:hotel_la_mansion/features/dashboard/screens/dashboard_screen.dart';
+import 'package:hotel_la_mansion/features/finances/screens/finances_screen.dart';
 import 'package:hotel_la_mansion/features/reservations/models/reservation.dart';
+import 'package:hotel_la_mansion/features/reservations/widgets/reservation_card.dart';
+import 'package:hotel_la_mansion/features/rooms/screens/rooms_screen.dart';
+import 'package:hotel_la_mansion/widgets/hotel_navigation_bar.dart';
 
 class ReservationsScreen extends StatefulWidget {
   const ReservationsScreen({super.key});
@@ -20,6 +26,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         children: _reservations.isEmpty
             ? [
                 const Card(
+                  color: Colors.white,
                   child: ListTile(
                     leading: Icon(Icons.calendar_month),
                     title: Text('No hay reservas registradas'),
@@ -33,20 +40,39 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         onPressed: _showNewReservationDialog,
         icon: const Icon(Icons.add),
         label: const Text('Nueva reserva'),
+        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFF023B90),
+      ),
+      bottomNavigationBar: HotelNavigationBar(
+        selectedIndex: 3,
+        onDestinationSelected: (index) => _navigateToTab(context, index),
       ),
     );
   }
 
   Widget _reservationCard(Reservation reservation) {
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.calendar_month),
-        title: Text(reservation.nombreCliente),
-        subtitle: Text(
-          'Habitación ${reservation.numeroHabitacion} · ${reservation.etiquetaEstado}',
-        ),
-      ),
+    return ReservationCard(
+      guestName: reservation.nombreCliente,
+      roomNumber: reservation.numeroHabitacion.toString(),
+      checkInDate: reservation.entrada,
+      checkOutDate: reservation.salida,
     );
+  }
+
+  void _navigateToTab(BuildContext context, int index) {
+    final screen = switch (index) {
+      0 => const DashboardScreen(),
+      1 => const RoomsScreen(),
+      2 => const ClientesScreen(),
+      4 => const FinancesScreen(),
+      _ => null,
+    };
+    if (screen != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => screen),
+      );
+    }
   }
 
   void _showNewReservationDialog() {
@@ -58,6 +84,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
+            backgroundColor: Colors.white,
             title: const Text('Nueva reserva'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -95,6 +122,10 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
             ),
             actions: [
               TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white, // Color del texto
+                  backgroundColor: Color(0xFF023B90),  // Color de fondo
+                ),
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text('Cancelar'),
               ),
